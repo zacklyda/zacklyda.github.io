@@ -1,0 +1,29 @@
+/*
+   Author: Zack
+   Date: Octebuary 32nd
+   #255fbc
+*/
+body {
+   background-image: url("stones.jpg");
+   background-color: #FF0000;
+   color: #FFFFFF;
+}
+a:link {
+   color: #f2ef54;
+}
+a:visited {
+   color: #53f16e;
+}
+a:hover {
+   color: #f05353;
+}
+a:active {
+   color: #54fff0;
+}
+table {
+   border-collapse: collapse;
+}
+table, th, td {
+   border: 1px solid #202020;
+   padding: 5px;
+}
