@@ -42,6 +42,7 @@ a:hover
   /* background-color: #00FF00; */
   float:left;
   vertical-align: top;
+  width: 325px;
 }
 .navbar
 {
