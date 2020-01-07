@@ -1,32 +1,28 @@
 #header {
     background-color: #f06060;
     padding: 52px 0px;
-    display:table;
-    width:100%;
-}
-#wrap {
-    display:table-row;
 }
 #logo {
-    display:table-cell;
-    width: 338px;
+    display:inline-block;
+    width: 348px;
     height: 57px;
+    border:1px dotted black;
+    position:relative;
 }
 #menu {
+    position: absolute;
+    right: 0;
+    top: 15px;
     display:none;
-}
-#menu_wrapper {
-    display:table-cell;
-    text-align:right;
-    padding-right:5px;
 }
 #nav {
     list-style: none;
     padding: 0;
-    text-align: left;
+    display: inline-block;
 }
 #nav.vertical {
     display: block;
+    padding-left: 20px;
 }
 #nav.vertical li {
     display: list-item;
@@ -41,7 +37,7 @@
 }
 @media screen and (max-width: 800px) {
     #menu {
-        display: block;
+        display: inline-block;
     }
     #nav {
         display: none;
