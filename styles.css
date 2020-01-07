@@ -23,17 +23,17 @@ a:hover
 {
    color: #FFFFAA;
 }
+.headbar
+{
+  /* background-color: #0000FF; */
+  height: 90px;
+}
 .logo
 {
   margin: 15px;
   /* background-color: #FF0000; */
   float:left;
   height: auto;
-}
-.navv
-{
-  /* background-color: #0000FF; */
-  height: 90px;
 }
 .name
 {
@@ -42,4 +42,13 @@ a:hover
   /* background-color: #00FF00; */
   float:left;
   vertical-align: top;
+}
+.navbar
+{
+  margin-top: 32px;
+  margin-left: 50px;
+  height: 30px;
+  /* background-color: #FF0000; */
+  float:left;
+  line-height: 30px;
 }
