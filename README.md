@@ -1,3 +1,3 @@
 # zacklyda.github.io
 
-Insert mode something great :D
+This is my website's beginning :D

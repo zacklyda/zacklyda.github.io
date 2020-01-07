@@ -1,0 +1,49 @@
+#header {
+    background-color: #f06060;
+    padding: 52px 0px;
+    display:table;
+    width:100%;
+}
+#wrap {
+    display:table-row;
+}
+#logo {
+    display:table-cell;
+    width: 338px;
+    height: 57px;
+}
+#menu {
+    display:none;
+}
+#menu_wrapper {
+    display:table-cell;
+    text-align:right;
+    padding-right:5px;
+}
+#nav {
+    list-style: none;
+    padding: 0;
+    text-align: left;
+}
+#nav.vertical {
+    display: block;
+}
+#nav.vertical li {
+    display: list-item;
+    line-height: 40px;
+}
+#nav li {
+    display:inline-block;
+    padding-right: 40px;
+}
+#nav li:last-child {
+    padding-right: 0;
+}
+@media screen and (max-width: 800px) {
+    #menu {
+        display: block;
+    }
+    #nav {
+        display: none;
+    }
+}
