@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Analysis</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e1e1e 0%, #252526 100%);
+            color: #f5f5f5;
+        }
+
+        .page-shell {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .panel {
+            width: min(900px, 100%);
+            background-color: #2d2d2d;
+            border: 1px solid #3d3d3d;
+            border-radius: 10px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 18px 20px;
+            background-color: #252526;
+            border-bottom: 1px solid #3d3d3d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .panel-header h1 {
+            color: #4ec9b0;
+            font-size: 1.3rem;
+            line-height: 1.2;
+        }
+
+        .panel-header p {
+            color: #b0b0b0;
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .advanced-page-btn,
+        .secondary-link {
+            background-color: #007acc;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background-color 0.2s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .advanced-page-btn:hover,
+        .secondary-link:hover {
+            background-color: #0062a3;
+        }
+
+        .secondary-link {
+            background-color: #3e3e42;
+        }
+
+        .secondary-link:hover {
+            background-color: #4e4e52;
+        }
+
+        .content {
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            gap: 8px;
+            background-color: #383838;
+            border: 1px solid #3d3d3d;
+            color: #ce9178;
+            padding: 8px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .message-card {
+            background-color: #252526;
+            border: 1px solid #3d3d3d;
+            border-radius: 8px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message-card h2 {
+            color: #dcdcdc;
+            font-size: 1.1rem;
+        }
+
+        .message-card p {
+            color: #d6d6d6;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .coming-soon {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #4ec9b0;
+            letter-spacing: 0.04em;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <main class="page-shell">
+        <section class="panel">
+            <header class="panel-header">
+                <div>
+                    <h1>Advanced Analysis</h1>
+                    <p>Built to match the main Nether Portal Linker Matrix experience.</p>
+                </div>
+                <a href="Index.html" class="secondary-link">← Back to Matrix</a>
+            </header>
+
+            <article class="content">
+                <span class="badge">Feature Preview</span>
+
+                <div class="message-card">
+                    <p class="coming-soon">Coming soon</p>
+                    <h2>This advanced analysis page is still in progress.</h2>
+                    <p>
+                        The main matrix page is ready, and this destination now matches its dark, polished look while the advanced tooling is being added.
+                    </p>
+                </div>
+
+                <div class="actions">
+                    <a href="Index.html" class="advanced-page-btn">⬅ Return to the main portal matrix</a>
+                </div>
+            </article>
+        </section>
+    </main>
+</body>
+</html>
