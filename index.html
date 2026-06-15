@@ -321,9 +321,9 @@
 
     <script>
         let portalCounter = 0;
-        const COOKIE_NAME = "mc_portal_matrix_data";
+        const STORAGE_KEY = "mc_portal_matrix_data";
 
-        // Default fallback sample data if no cookies exist yet
+        // Default fallback sample data if no local storage exists yet
         const defaultSamples = [
             { name: "Spawn Base", dimension: "overworld", x: 0, y: 64, z: 0 },
             { name: "Desert Temple", dimension: "overworld", x: 800, y: 70, z: -1200 },
@@ -333,28 +333,13 @@
             { name: "Outpost Hub", dimension: "nether", x: 95, y: 72, z: -145 }
         ];
 
-        // --- COOKIE UTILITIES ---
-        function setCookie(name, value, days = 365) {
-            const date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            // SameSite=Strict provides safety configuration; path=/ keeps data accessible across page scopes
-            document.cookie = `${name}=${encodeURIComponent(value)};expires=${date.toUTCString()};path=/;SameSite=Strict`;
-        }
-
-        function getCookie(name) {
-            const matches = document.cookie.match(new RegExp(
-                "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
-            ));
-            return matches ? decodeURIComponent(matches[1]) : null;
-        }
-
-        // Gather current UI states, push them to a cookie, then draw the table
+        // --- LOCAL STORAGE UTILITIES ---
         function handleDataChange() {
-            saveDataToCookies();
+            saveDataToStorage();
             generateMatrix();
         }
 
-        function saveDataToCookies() {
+        function saveDataToStorage() {
             const items = document.getElementsByClassName('portal-item');
             let portalDataArray = [];
 
@@ -367,16 +352,16 @@
                     z: parseFloat(item.querySelector('.p-z').value) || 0
                 });
             }
-            setCookie(COOKIE_NAME, JSON.stringify(portalDataArray));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(portalDataArray));
         }
 
-        function loadDataFromCookies() {
-            const rawCookie = getCookie(COOKIE_NAME);
-            if (rawCookie) {
+        function loadDataFromStorage() {
+            const rawData = localStorage.getItem(STORAGE_KEY);
+            if (rawData) {
                 try {
-                    return JSON.parse(rawCookie);
+                    return JSON.parse(rawData);
                 } catch (e) {
-                    console.error("Failed parsing portal cookie database storage.", e);
+                    console.error("Failed parsing portal storage.", e);
                     return defaultSamples;
                 }
             }
@@ -477,12 +462,16 @@
                 return;
             }
 
+            // Grids to store values and tracking flags
             let distanceGrid = [];
+            let tooFarGrid = []; 
             let rowMinimaIndices = new Array(overworldPortals.length).fill(null);
             let colMinimaIndices = new Array(netherPortals.length).fill(null);
 
+            // Step 1: Calculate distances and check the 128 horizontal block limit
             for (let r = 0; r < overworldPortals.length; r++) {
                 distanceGrid[r] = [];
+                tooFarGrid[r] = [];
                 let minRowVal = Infinity;
 
                 for (let c = 0; c < netherPortals.length; c++) {
@@ -492,27 +481,41 @@
                     const dx = op.x - (np.x * 8);
                     const dy = op.y - np.y;
                     const dz = op.z - (np.z * 8);
-                    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
                     
-                    distanceGrid[r][c] = distance;
+                    // 2D horizontal distance validation check
+                    const distance2D = Math.sqrt(dx * dx + dz * dz);
+                    const totalDistance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    
+                    distanceGrid[r][c] = totalDistance3D;
 
-                    if (distance < minRowVal) {
-                        minRowVal = distance;
-                        rowMinimaIndices[r] = c;
+                    if (distance2D > 128) {
+                        tooFarGrid[r][c] = true; // Exceeds generation linking range
+                    } else {
+                        tooFarGrid[r][c] = false;
+                        // Only evaluate valid cells for row minimum
+                        if (totalDistance3D < minRowVal) {
+                            minRowVal = totalDistance3D;
+                            rowMinimaIndices[r] = c;
+                        }
                     }
                 }
             }
 
+            // Step 2: Track valid column minima
             for (let c = 0; c < netherPortals.length; c++) {
                 let minColVal = Infinity;
                 for (let r = 0; r < overworldPortals.length; r++) {
-                    if (distanceGrid[r][c] < minColVal) {
-                        minColVal = distanceGrid[r][c];
-                        colMinimaIndices[c] = r;
+                    // Ignore elements flagged as out of range
+                    if (!tooFarGrid[r][r] && !tooFarGrid[r][c]) {
+                        if (distanceGrid[r][c] < minColVal) {
+                            minColVal = distanceGrid[r][c];
+                            colMinimaIndices[c] = r;
+                        }
                     }
                 }
             }
 
+            // Step 3: Render the interface
             let tableHTML = '<table>';
             tableHTML += '<thead><tr><th>Overworld \\ Nether (Unscaled)</th>';
             netherPortals.forEach(np => {
@@ -525,23 +528,30 @@
                 tableHTML += `<tr><th>${op.name}<span class="portal-subtext">(${op.x}, ${op.y}, ${op.z})</span></th>`;
                 
                 for (let c = 0; c < netherPortals.length; c++) {
-                    const isRowMin = (rowMinimaIndices[r] === c);
-                    const isColMin = (colMinimaIndices[c] === r);
-                    
-                    let innerDecorations = '';
-                    let extraClasses = '';
-
-                    if (isRowMin && isColMin) {
-                        extraClasses = 'outline-green';
-                        innerDecorations += '<div class="tri-row-min"></div><div class="tri-col-min"></div>';
-                    } else if (isRowMin || isColMin) {
-                        extraClasses = 'outline-yellow';
-                        if (isRowMin) innerDecorations += '<div class="tri-row-min"></div>';
-                        if (isColMin) innerDecorations += '<div class="tri-col-min"></div>';
-                    }
-
                     const displayDistance = distanceGrid[r][c].toFixed(1);
-                    tableHTML += `<td class="${extraClasses}">${displayDistance}${innerDecorations}</td>`;
+                    
+                    if (tooFarGrid[r][c]) {
+                        // Cell is too far away: apply grayed-out layout styling and a dynamic warning text block
+                        tableHTML += `<td style="color: #666666; font-style: italic; font-size: 0.8rem;">${displayDistance} blocks<br><span style="color: #8a3333; font-size: 0.75rem;">too far in X-Z</span></td>`;
+                    } else {
+                        // Cell is within range: process normal tracking rules
+                        const isRowMin = (rowMinimaIndices[r] === c);
+                        const isColMin = (colMinimaIndices[c] === r);
+                        
+                        let innerDecorations = '';
+                        let extraClasses = '';
+
+                        if (isRowMin && isColMin) {
+                            extraClasses = 'outline-green';
+                            innerDecorations += '<div class="tri-row-min"></div><div class="tri-col-min"></div>';
+                        } else if (isRowMin || isColMin) {
+                            extraClasses = 'outline-yellow';
+                            if (isRowMin) innerDecorations += '<div class="tri-row-min"></div>';
+                            if (isColMin) innerDecorations += '<div class="tri-col-min"></div>';
+                        }
+
+                        tableHTML += `<td class="${extraClasses}">${displayDistance}${innerDecorations}</td>`;
+                    }
                 }
                 tableHTML += `</tr>`;
             }
@@ -552,7 +562,7 @@
 
         // --- LIFE CYCLE INITIALIZATION ---
         window.onload = function() {
-            const savedPortals = loadDataFromCookies();
+            const savedPortals = loadDataFromStorage();
             savedPortals.forEach(portal => addPortalRow(portal));
             generateMatrix();
         }
