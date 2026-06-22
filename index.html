@@ -277,6 +277,11 @@
             position: relative;
         }
 
+        /* Minimal padding for matrix data cells (keeps headers comfortable) */
+        .matrix-wrapper table td {
+            padding: 6px 8px;
+        }
+
         /* Sticky Headers */
         thead th {
             position: sticky;
@@ -402,6 +407,26 @@
         .collapsed-cell .portal-subtext,
         .collapsed-cell .too-far-caption {
             display: none;
+        }
+
+        .num {
+            font-size: 0.95rem;
+            color: #bfc7b6;
+        }
+
+        .number-muted {
+            color: #666666 !important;
+            font-size: 0.8rem !important;
+        }
+
+        .number-highlight-yellow {
+            color: #ffdc00 !important;
+            font-weight: bold;
+        }
+
+        .number-highlight-green {
+            color: #2ecc71 !important;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -738,47 +763,72 @@
                 return;
             }
 
-            let distanceGrid = [];
-            let tooFarGrid = []; 
+            // We'll compute two separate distance metrics per cell:
+            // - netEnterDist: distance when entering in the Nether (np scaled *8 to OW)
+            // - owEnterDist: distance when entering in the Overworld (op converted to Nether via floor(op / 8))
+            let netEnterDist = [];
+            let owEnterDist = [];
+            let tooFarNetEnter = [];
+            let tooFarOWEnter = [];
             let rowMinimaIndices = new Array(overworldPortals.length).fill(null);
             let colMinimaIndices = new Array(netherPortals.length).fill(null);
 
+            // Build grids
             for (let r = 0; r < overworldPortals.length; r++) {
-                distanceGrid[r] = [];
-                tooFarGrid[r] = [];
-                let minRowVal = Infinity;
-
+                netEnterDist[r] = [];
+                owEnterDist[r] = [];
+                tooFarNetEnter[r] = [];
+                tooFarOWEnter[r] = [];
                 for (let c = 0; c < netherPortals.length; c++) {
                     const op = overworldPortals[r];
                     const np = netherPortals[c];
 
-                    const dx = op.x - (np.x * 8);
-                    const dy = op.y - np.y;
-                    const dz = op.z - (np.z * 8);
-                    
-                    const distance2D = Math.sqrt(dx * dx + dz * dz);
-                    const totalDistance3D = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                    
-                    distanceGrid[r][c] = totalDistance3D;
+                    // Net -> OW (nether portal coords scaled *8 to compare with overworld)
+                    const dx_net2ow = op.x - (np.x * 8);
+                    const dz_net2ow = op.z - (np.z * 8);
+                    const dy_net2ow = op.y - np.y;
+                    const dist2d_net2ow = Math.sqrt(dx_net2ow * dx_net2ow + dz_net2ow * dz_net2ow);
+                    const total3d_net2ow = Math.sqrt(dx_net2ow * dx_net2ow + dy_net2ow * dy_net2ow + dz_net2ow * dz_net2ow);
 
-                    if (distance2D > 128) {
-                        tooFarGrid[r][c] = true;
-                    } else {
-                        tooFarGrid[r][c] = false;
-                        if (totalDistance3D < minRowVal) {
-                            minRowVal = totalDistance3D;
+                    // OW -> Net (overworld portal coords divided by 8 and floored)
+                    const opNetX = Math.floor(op.x / 8);
+                    const opNetZ = Math.floor(op.z / 8);
+                    const dx_ow2net = opNetX - np.x;
+                    const dz_ow2net = opNetZ - np.z;
+                    const dy_ow2net = op.y - np.y;
+                    const dist2d_ow2net = Math.sqrt(dx_ow2net * dx_ow2net + dz_ow2net * dz_ow2net);
+                    const total3d_ow2net = Math.sqrt(dx_ow2net * dx_ow2net + dy_ow2net * dy_ow2net + dz_ow2net * dz_ow2net);
+
+                    netEnterDist[r][c] = total3d_net2ow;
+                    owEnterDist[r][c] = total3d_ow2net;
+
+                    tooFarNetEnter[r][c] = dist2d_net2ow > 128;
+                    tooFarOWEnter[r][c] = dist2d_ow2net > 128;
+                }
+            }
+
+            // Determine row minima using OW->Net distances (only consider cells that are within range in BOTH directions)
+            for (let r = 0; r < overworldPortals.length; r++) {
+                let minVal = Infinity;
+                for (let c = 0; c < netherPortals.length; c++) {
+                    // exclude any cell that is out-of-range in either direction
+                    if (!tooFarOWEnter[r][c] && !tooFarNetEnter[r][c]) {
+                        if (owEnterDist[r][c] < minVal) {
+                            minVal = owEnterDist[r][c];
                             rowMinimaIndices[r] = c;
                         }
                     }
                 }
             }
 
+            // Determine column minima using Net->OW distances (only consider cells that are within range in BOTH directions)
             for (let c = 0; c < netherPortals.length; c++) {
-                let minColVal = Infinity;
+                let minVal = Infinity;
                 for (let r = 0; r < overworldPortals.length; r++) {
-                    if (!tooFarGrid[r][c]) {
-                        if (distanceGrid[r][c] < minColVal) {
-                            minColVal = distanceGrid[r][c];
+                    // exclude any cell that is out-of-range in either direction
+                    if (!tooFarNetEnter[r][c] && !tooFarOWEnter[r][c]) {
+                        if (netEnterDist[r][c] < minVal) {
+                            minVal = netEnterDist[r][c];
                             colMinimaIndices[c] = r;
                         }
                     }
@@ -799,19 +849,21 @@
                 tableHTML += `<tr><th class="${rowCollapsed ? 'collapsed-cell' : ''}"><button class="toggle-collapse-btn ${rowCollapsed ? 'collapsed' : ''}" onclick="toggleRow(${r})" title="${rowCollapsed ? 'Expand' : 'Collapse'} row">${getCollapseIcon(rowCollapsed)}</button>${op.name}<span class="portal-subtext">(${op.x}, ${op.y}, ${op.z})</span></th>`;
                 
                 for (let c = 0; c < netherPortals.length; c++) {
-                    const displayDistance = distanceGrid[r][c].toFixed(1);
+                    const netDist = netEnterDist[r][c].toFixed(1);
+                    const owDist = owEnterDist[r][c].toFixed(1);
                     const cellCollapsed = rowCollapsed || collapsedCols.includes(c);
-                    const isTooFar = tooFarGrid[r][c];
+                    const tooFarNet = tooFarNetEnter[r][c];
+                    const tooFarOW = tooFarOWEnter[r][c];
 
                     let cellClasses = [];
                     let innerDecorations = '';
                     let extraClasses = '';
-                    const visibleDistance = cellCollapsed ? '' : displayDistance;
 
-                    if (!isTooFar) {
-                        const isRowMin = (rowMinimaIndices[r] === c);
-                        const isColMin = (colMinimaIndices[c] === r);
+                    // Determine highlighting: row minima uses OW->Net, column minima uses Net->OW
+                    const isRowMin = (rowMinimaIndices[r] === c);
+                    const isColMin = (colMinimaIndices[c] === r);
 
+                    if (!tooFarNet && !tooFarOW) {
                         if (isRowMin && isColMin) {
                             extraClasses = 'outline-green';
                             innerDecorations += '<div class="tri-row-min"></div><div class="tri-col-min"></div>';
@@ -820,17 +872,46 @@
                             if (isRowMin) innerDecorations += '<div class="tri-row-min"></div>';
                             if (isColMin) innerDecorations += '<div class="tri-col-min"></div>';
                         }
+                    } else {
+                        if (isRowMin || isColMin) extraClasses = 'outline-yellow';
                     }
 
                     if (extraClasses) cellClasses.push(extraClasses);
                     if (cellCollapsed) cellClasses.push('collapsed-cell');
 
-                    if (isTooFar) {
-                        const tooFarLabel = cellCollapsed ? '' : `${displayDistance} blocks<br><span class="too-far-caption" style="color: #8a3333; font-size: 0.75rem;">too far in X-Z</span>`;
-                        tableHTML += `<td class="${cellClasses.join(' ')}" style="color: #666666; font-style: italic; font-size: 0.8rem;">${tooFarLabel}${innerDecorations}</td>`;
-                    } else {
-                        tableHTML += `<td class="${cellClasses.join(' ')}">${visibleDistance}${innerDecorations}</td>`;
+                    // Build number spans with conditional highlighting or muted style
+                    let netSpan = '';
+                    let owSpan = '';
+                    if (!cellCollapsed) {
+                        const cellTooFar = tooFarNet || tooFarOW;
+                        let netClass = 'num';
+                        let owClass = 'num';
+
+                        if (cellTooFar) {
+                            netClass += ' number-muted';
+                            owClass += ' number-muted';
+                        } else {
+                            if (isRowMin && isColMin) {
+                                netClass += ' number-highlight-green';
+                                owClass += ' number-highlight-green';
+                            } else {
+                                if (isColMin) netClass += ' number-highlight-yellow';
+                                if (isRowMin) owClass += ' number-highlight-yellow';
+                            }
+                        }
+
+                        netSpan = `<div><span class="${netClass}">${netDist}</span> <span style="font-size:0.75rem;color:#888;margin-left:6px;">(net→ow)</span></div>`;
+                        owSpan = `<div style="margin-top:4px;"><span class="${owClass}">${owDist}</span> <span style="font-size:0.75rem;color:#888;margin-left:6px;">(ow→net)</span></div>`;
                     }
+
+                    // too-far caption: show a single unified message when either direction is out of bounds
+                    const isTooAny = (tooFarNet || tooFarOW);
+                    let tooFarCaption = '';
+                    if (isTooAny && !cellCollapsed) {
+                        tooFarCaption = `<div class="number-muted" style="margin-top:4px;">too far away</div>`;
+                    }
+
+                    tableHTML += `<td class="${cellClasses.join(' ')}" style="vertical-align: middle;">${netSpan}${innerDecorations}${owSpan}${tooFarCaption}</td>`;
                 }
                 tableHTML += `</tr>`;
             }
