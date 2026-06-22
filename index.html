@@ -361,6 +361,48 @@
             font-weight: bold;
             color: #2ecc71;
         }
+
+        .toggle-collapse-btn {
+            background: none;
+            border: 1px solid transparent;
+            color: #dcdcdc;
+            cursor: pointer;
+            font-size: 0.9rem;
+            line-height: 1;
+            padding: 0 6px;
+            margin-right: 6px;
+            border-radius: 3px;
+        }
+
+        .toggle-collapse-btn:hover {
+            color: white;
+            border-color: rgba(255,255,255,0.12);
+        }
+
+        .toggle-collapse-btn.collapsed {
+            color: #4ec9b0;
+        }
+
+        .collapsed-cell {
+            min-width: 40px !important;
+            max-width: 40px !important;
+            padding: 8px 6px !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0;
+            color: transparent;
+        }
+
+        .collapsed-cell .toggle-collapse-btn {
+            font-size: 0.9rem;
+            color: inherit;
+        }
+
+        .collapsed-cell .portal-subtext,
+        .collapsed-cell .too-far-caption {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -431,6 +473,33 @@
             { name: "Fortress Farm", dimension: "nether", x: 100, y: 60, z: -150 },
             { name: "Outpost Hub", dimension: "nether", x: 95, y: 72, z: -145 }
         ];
+
+        const collapsedRows = [];
+        const collapsedCols = [];
+
+        function getCollapseIcon(isCollapsed) {
+            return isCollapsed ? '▾' : '▸';
+        }
+
+        function toggleRow(rowIndex) {
+            const position = collapsedRows.indexOf(rowIndex);
+            if (position === -1) {
+                collapsedRows.push(rowIndex);
+            } else {
+                collapsedRows.splice(position, 1);
+            }
+            generateMatrix();
+        }
+
+        function toggleColumn(colIndex) {
+            const position = collapsedCols.indexOf(colIndex);
+            if (position === -1) {
+                collapsedCols.push(colIndex);
+            } else {
+                collapsedCols.splice(position, 1);
+            }
+            generateMatrix();
+        }
 
         // --- EXPANSION & COLLAPSE UI DRIVER ---
         function toggleRegistryPanel() {
@@ -718,26 +787,30 @@
 
             let tableHTML = '<table>';
             tableHTML += '<thead><tr><th>Overworld \\ Nether (Unscaled)</th>';
-            netherPortals.forEach(np => {
-                tableHTML += `<th>${np.name}<span class="portal-subtext">Nether: (${np.x}, ${np.y}, ${np.z})</span><span class="portal-subtext" style="color: #b5cea8;">OW Equiv: (${np.x * 8}, ${np.y}, ${np.z * 8})</span></th>`;
+            netherPortals.forEach((np, c) => {
+                const colCollapsed = collapsedCols.includes(c);
+                tableHTML += `<th class="${colCollapsed ? 'collapsed-cell' : ''}"><button class="toggle-collapse-btn ${colCollapsed ? 'collapsed' : ''}" onclick="toggleColumn(${c})" title="${colCollapsed ? 'Expand' : 'Collapse'} column">${getCollapseIcon(colCollapsed)}</button>${np.name}<span class="portal-subtext">Nether: (${np.x}, ${np.y}, ${np.z})</span><span class="portal-subtext" style="color: #b5cea8;">OW Equiv: (${np.x * 8}, ${np.y}, ${np.z * 8})</span></th>`;
             });
             tableHTML += '</tr></thead><tbody>';
 
             for (let r = 0; r < overworldPortals.length; r++) {
                 const op = overworldPortals[r];
-                tableHTML += `<tr><th>${op.name}<span class="portal-subtext">(${op.x}, ${op.y}, ${op.z})</span></th>`;
+                const rowCollapsed = collapsedRows.includes(r);
+                tableHTML += `<tr><th class="${rowCollapsed ? 'collapsed-cell' : ''}"><button class="toggle-collapse-btn ${rowCollapsed ? 'collapsed' : ''}" onclick="toggleRow(${r})" title="${rowCollapsed ? 'Expand' : 'Collapse'} row">${getCollapseIcon(rowCollapsed)}</button>${op.name}<span class="portal-subtext">(${op.x}, ${op.y}, ${op.z})</span></th>`;
                 
                 for (let c = 0; c < netherPortals.length; c++) {
                     const displayDistance = distanceGrid[r][c].toFixed(1);
-                    
-                    if (tooFarGrid[r][c]) {
-                        tableHTML += `<td style="color: #666666; font-style: italic; font-size: 0.8rem;">${displayDistance} blocks<br><span style="color: #8a3333; font-size: 0.75rem;">too far in X-Z</span></td>`;
-                    } else {
+                    const cellCollapsed = rowCollapsed || collapsedCols.includes(c);
+                    const isTooFar = tooFarGrid[r][c];
+
+                    let cellClasses = [];
+                    let innerDecorations = '';
+                    let extraClasses = '';
+                    const visibleDistance = cellCollapsed ? '' : displayDistance;
+
+                    if (!isTooFar) {
                         const isRowMin = (rowMinimaIndices[r] === c);
                         const isColMin = (colMinimaIndices[c] === r);
-                        
-                        let innerDecorations = '';
-                        let extraClasses = '';
 
                         if (isRowMin && isColMin) {
                             extraClasses = 'outline-green';
@@ -747,8 +820,16 @@
                             if (isRowMin) innerDecorations += '<div class="tri-row-min"></div>';
                             if (isColMin) innerDecorations += '<div class="tri-col-min"></div>';
                         }
+                    }
 
-                        tableHTML += `<td class="${extraClasses}">${displayDistance}${innerDecorations}</td>`;
+                    if (extraClasses) cellClasses.push(extraClasses);
+                    if (cellCollapsed) cellClasses.push('collapsed-cell');
+
+                    if (isTooFar) {
+                        const tooFarLabel = cellCollapsed ? '' : `${displayDistance} blocks<br><span class="too-far-caption" style="color: #8a3333; font-size: 0.75rem;">too far in X-Z</span>`;
+                        tableHTML += `<td class="${cellClasses.join(' ')}" style="color: #666666; font-style: italic; font-size: 0.8rem;">${tooFarLabel}${innerDecorations}</td>`;
+                    } else {
+                        tableHTML += `<td class="${cellClasses.join(' ')}">${visibleDistance}${innerDecorations}</td>`;
                     }
                 }
                 tableHTML += `</tr>`;
