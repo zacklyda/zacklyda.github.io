@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Minecraft Portal Calculator</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div id="input-panel">
+        <div class="panel-header">
+            <h2>Portal Registry</h2>
+            <p style="font-size: 0.8rem; color: #888;">Data is saved locally inside Storage</p>
+            
+            <button class="toggle-registry-btn" id="toggle-latch" onclick="toggleRegistryPanel()" title="Toggle Registry Panel">◀</button>
+            
+            <div class="file-actions-menu">
+                <button class="menu-btn" onclick="exportToPortalFile()">📤 Export .portal</button>
+                <button class="menu-btn" onclick="document.getElementById('import-file-input').click()">📥 Import .portal</button>
+                <input type="file" id="import-file-input" accept=".portal" style="display: none;" onchange="importFromPortalFile(this)">
+            </div>
+        </div>
+        
+        <div id="portal-list" oninput="handleDataChange()" onchange="handleDataChange()">
+            </div>
+
+        <div class="panel-actions">
+            <button id="add-btn" class="action-btn" onclick="addPortalRow()">+ Add Portal</button>
+        </div>
+    </div>
+
+    <div id="matrix-panel">
+        <div class="matrix-header-row">
+            <h2>Distance Matrix (Overworld Equivalent Blocks)</h2>
+            <a href="advanced.html" class="advanced-page-btn" id="adv-link">⚙️ Advanced Analysis</a>
+        </div>
+        
+        <div class="matrix-subtitle">Calculated using 3D distance after multiplying Nether X & Z coordinates by 8.</div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div style="width:0; height:0; border-style:solid; border-width:15px 0 0 15px; border-color:transparent transparent transparent #569cd6;"></div>
+                <span>Closest portal in the Nether</span>
+            </div>
+            <div class="legend-item">
+                <div style="width:0; height:0; border-style:solid; border-width:0 15px 15px 0; border-color:transparent #ce9178 transparent transparent;"></div>
+                <span>Closest portal in the Overworld</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box outline-yellow" style="background:#2a2a2a;"></div>
+                <span>One way portal</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box outline-green" style="background:#2a2a2a;"></div>
+                <span>Bidirectional portal</span>
+            </div>
+        </div>
+
+        <div class="matrix-wrapper" id="matrix-container">
+            <div class="empty-state">Add portals to view the distance matrix.</div>
+        </div>
+    </div>
+
+    <script src="index.js"></script>
+</body>
+</html>
